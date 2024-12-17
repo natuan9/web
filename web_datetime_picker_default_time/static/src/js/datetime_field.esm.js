@@ -1,9 +1,7 @@
 /* Copyright 2024 Camptocamp
  * License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl) */
 
-import {onWillRender, useState} from "@odoo/owl";
-import {useDateTimePicker} from "@web/core/datetime/datetime_hook";
-import {areDatesEqual} from "@web/core/l10n/dates";
+import { useService } from "@web/core/utils/hooks";
 import {patch} from "@web/core/utils/patch";
 import {
     DateTimeField,
@@ -15,87 +13,17 @@ import {
     listDateTimeField,
 } from "@web/views/fields/datetime/list_datetime_field";
 
+/**
+ * @typedef {import("./datepicker.esm").DateTimePickerProps} DateTimePickerProps
+*/
+
 patch(DateTimeField.prototype, {
     setup() {
-        // Original logic handles
-        const getPickerProps = () => {
-            const value = this.getRecordValue();
-            /** @type {DateTimePickerProps} */
-            const pickerProps = {
-                value,
-                type: this.field.type,
-                range: this.isRange(value),
-            };
-            if (this.props.maxDate) {
-                pickerProps.maxDate = this.parseLimitDate(this.props.maxDate);
-            }
-            if (this.props.minDate) {
-                pickerProps.minDate = this.parseLimitDate(this.props.minDate);
-            }
-            if (!isNaN(this.props.rounding)) {
-                pickerProps.rounding = this.props.rounding;
-            } else if (!this.props.showSeconds) {
-                pickerProps.rounding = 0;
-            }
-            if (this.props.maxPrecision) {
-                pickerProps.maxPrecision = this.props.maxPrecision;
-            }
-            if (this.props.minPrecision) {
-                pickerProps.minPrecision = this.props.minPrecision;
-            }
+        const datetimepickerDefaultValueService = useService("datetimepicker_defaultValue");
 
-            // OVERRIDE: Add default time
-            if (this.props.defaultTime) {
-                pickerProps.defaultTime = this.defaultTime;
-            }
-            if (this.props.defaultStartTime) {
-                pickerProps.defaultStartTime = this.defaultStartTime;
-            }
-            if (this.props.defaultEndTime) {
-                pickerProps.defaultEndTime = this.defaultEndTime;
-            }
-            return pickerProps;
-        };
+        datetimepickerDefaultValueService.init(this.defaultTime, this.defaultStartTime, this.defaultEndTime);
 
-        const dateTimePicker = useDateTimePicker({
-            target: "root",
-            showSeconds: this.props.showSeconds,
-            condensed: this.props.condensed,
-            get pickerProps() {
-                return getPickerProps();
-            },
-            onChange: () => {
-                this.state.range = this.isRange(this.state.value);
-            },
-            onApply: () => {
-                const toUpdate = {};
-                if (Array.isArray(this.state.value)) {
-                    [toUpdate[this.startDateField], toUpdate[this.endDateField]] =
-                        this.state.value;
-                } else {
-                    toUpdate[this.props.name] = this.state.value;
-                }
-
-                for (const fieldName in toUpdate) {
-                    if (
-                        areDatesEqual(
-                            toUpdate[fieldName],
-                            this.props.record.data[fieldName]
-                        )
-                    ) {
-                        delete toUpdate[fieldName];
-                    }
-                }
-
-                if (Object.keys(toUpdate).length) {
-                    this.props.record.update(toUpdate);
-                }
-            },
-        });
-        this.state = useState(dateTimePicker.state);
-        this.openPicker = dateTimePicker.open;
-
-        onWillRender(() => this.triggerIsDirty());
+        super.setup();
     },
 
     // Getter
@@ -179,28 +107,28 @@ DateTimeField.props = {
     },
 };
 
-const super_dateTime_extractProps = dateTimeField.extractProps;
+const superDateTimeExtractProps = dateTimeField.extractProps;
 dateTimeField.extractProps = ({attrs, options}, dynamicInfo) => ({
-    ...super_dateTime_extractProps({attrs, options}, dynamicInfo),
+    ...superDateTimeExtractProps({attrs, options}, dynamicInfo),
     defaultTime: options.defaultTime,
 });
 
-const super_dateRange_extractProps = dateRangeField.extractProps;
+const superDateRangeExtractProps = dateRangeField.extractProps;
 dateRangeField.extractProps = ({attrs, options}, dynamicInfo) => ({
-    ...super_dateRange_extractProps({attrs, options}, dynamicInfo),
+    ...superDateRangeExtractProps({attrs, options}, dynamicInfo),
     defaultStartTime: options.defaultStartTime,
     defaultEndTime: options.defaultEndTime,
 });
 
-const super_listDateTime_extractProps = listDateTimeField.extractProps;
+const superListDateTimeExtractProps = listDateTimeField.extractProps;
 listDateTimeField.extractProps = ({attrs, options}, dynamicInfo) => ({
-    ...super_listDateTime_extractProps({attrs, options}, dynamicInfo),
+    ...superListDateTimeExtractProps({attrs, options}, dynamicInfo),
     defaultTime: options.defaultTime,
 });
 
-const super_listDateRange_extractProps = listDateRangeField.extractProps;
+const superListDateRangeExtractProps = listDateRangeField.extractProps;
 listDateRangeField.extractProps = ({attrs, options}, dynamicInfo) => ({
-    ...super_listDateRange_extractProps({attrs, options}, dynamicInfo),
+    ...superListDateRangeExtractProps({attrs, options}, dynamicInfo),
     defaultStartTime: options.defaultStartTime,
     defaultEndTime: options.defaultEndTime,
 });
