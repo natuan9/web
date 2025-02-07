@@ -1,6 +1,7 @@
 /* Copyright 2024 Camptocamp
  * License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl) */
 
+import {onWillRender, useState} from "@odoo/owl";
 import {patch} from "@web/core/utils/patch";
 import {
     DateTimeField,
@@ -11,18 +12,97 @@ import {
     listDateRangeField,
     listDateTimeField,
 } from "@web/views/fields/datetime/list_datetime_field";
+import {useDateTimePicker} from "@web/core/datetime/datetime_hook";
+import {areDatesEqual} from "@web/core/l10n/dates";
 
 /**
  * @typedef {import("./datepicker.esm").DateTimePickerProps} DateTimePickerProps
  */
 
 patch(DateTimeField.prototype, {
+    // OVERRIDE: add defaultTime, defaultStartTime, defaultEndTime to pickerProps
     setup() {
-        super.setup();
+        const getPickerProps = () => {
+            const value = this.getRecordValue();
+            /** @type {DateTimePickerProps} */
+            const pickerProps = {
+                value,
+                type: this.field.type,
+                range: this.isRange(value),
+            };
+            if (this.props.maxDate) {
+                pickerProps.maxDate = this.parseLimitDate(this.props.maxDate);
+            }
+            if (this.props.minDate) {
+                pickerProps.minDate = this.parseLimitDate(this.props.minDate);
+            }
+            if (!isNaN(this.props.rounding)) {
+                pickerProps.rounding = this.props.rounding;
+            } else if (!this.props.showSeconds) {
+                pickerProps.rounding = 0;
+            }
+            if (this.props.maxPrecision) {
+                pickerProps.maxPrecision = this.props.maxPrecision;
+            }
+            if (this.props.minPrecision) {
+                pickerProps.minPrecision = this.props.minPrecision;
+            }
 
-        this.state.defaultTime = this.defaultTime;
-        this.state.defaultStartTime = this.defaultStartTime;
-        this.state.defaultEndTime = this.defaultEndTime;
+            // Add defaultTime, defaultStartTime, defaultEndTime to pickerProps
+            if (this.props.defaultTime) {
+                pickerProps.defaultTime = this.defaultTime;
+            }
+            if (this.props.defaultStartTime) {
+                pickerProps.defaultStartTime = this.defaultStartTime;
+            }
+            if (this.props.defaultEndTime) {
+                pickerProps.defaultEndTime = this.defaultEndTime;
+            }
+            return pickerProps;
+        };
+
+        const dateTimePicker = useDateTimePicker({
+            target: "root",
+            showSeconds: this.props.showSeconds,
+            condensed: this.props.condensed,
+            get pickerProps() {
+                return getPickerProps();
+            },
+            onChange: () => {
+                this.state.range = this.isRange(this.state.value);
+            },
+            onApply: () => {
+                const toUpdate = {};
+                if (Array.isArray(this.state.value)) {
+                    // Value is already a range
+                    [toUpdate[this.startDateField], toUpdate[this.endDateField]] =
+                        this.state.value;
+                } else {
+                    toUpdate[this.props.name] = this.state.value;
+                }
+
+                // If startDateField or endDateField are not set, delete unchanged fields
+                for (const fieldName in toUpdate) {
+                    if (
+                        areDatesEqual(
+                            toUpdate[fieldName],
+                            this.props.record.data[fieldName]
+                        )
+                    ) {
+                        delete toUpdate[fieldName];
+                    }
+                }
+
+                if (Object.keys(toUpdate).length) {
+                    this.props.record.update(toUpdate);
+                }
+            },
+        });
+        // Subscribes to changes made on the picker state
+        this.state = useState(dateTimePicker.state);
+        this.openPicker = dateTimePicker.open;
+
+        onWillRender(() => this.triggerIsDirty());
     },
 
     // Getter

@@ -3,9 +3,9 @@ from odoo.tests import HttpCase, tagged
 
 
 @tagged("-at_install", "post_install")
-class TestQunit(HttpCase):
+class TestHoot(HttpCase):
     @odoo.tests.no_retry
-    def test_qunit(self):
+    def test_hoot(self):
         self.browser_js(
             "/web/tests?suite=ad791ca3",
             "",
