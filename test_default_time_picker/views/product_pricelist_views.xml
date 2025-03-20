@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="product_pricelist_item_form_view" model="ir.ui.view">
+        <field name="model">product.pricelist.item</field>
+        <field name="inherit_id" ref="product.product_pricelist_item_form_view" />
+        <field name="arch" type="xml">
+            <field name="date_start" position="attributes">
+                <attribute
+                    name="options"
+                >{'end_date_field': 'date_end', "defaultStartTime": {"hour": 2, "minute": 22, "second": 22,}, "defaultEndTime": {"hour": 3, "minute": 33, "second": 33,}}</attribute>
+            </field>
+
+            <field name="date_end" position="before">
+                <field name="start_time" widget="jsonb" />
+            </field>
+
+            <field name="date_end" position="attributes">
+                <attribute name="widget">datetime</attribute>
+                <attribute name="options">{"defaultTime": "start_time"}</attribute>
+                <attribute name="invisible">0</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="product_pricelist_item_tree_view_from_product" model="ir.ui.view">
+        <field name="model">product.pricelist.item</field>
+        <field
+            name="inherit_id"
+            ref="product.product_pricelist_item_tree_view_from_product"
+        />
+        <field name="arch" type="xml">
+            <field name="date_start" position="attributes">
+                <attribute name="widget">daterange</attribute>
+                <attribute
+                    name="options"
+                >{'end_date_field': 'date_end', "defaultStartTime": {"hour": 2, "minute": 22, "second": 22,}, "defaultEndTime": {"hour": 3, "minute": 33, "second": 33,}}</attribute>
+            </field>
+
+            <field name="date_end" position="attributes">
+                <attribute name="widget">datetime</attribute>
+                <attribute
+                    name="options"
+                >{"defaultTime": {"hour": 5, "minute": 55, "second": 55,}}</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>
